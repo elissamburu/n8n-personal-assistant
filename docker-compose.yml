@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # --- PERSISTENCIA ---
   db:
     container_name: ${INSTANCE_PREFIX}-db
     image: postgres:16-alpine
@@ -11,6 +12,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-n8n_db}
     volumes:
       - ./volumes/postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  redis:
+    container_name: ${INSTANCE_PREFIX}-redis
+    image: redis:7-alpine
+    restart: always
     networks:
       - internal
 
@@ -28,6 +36,7 @@ services:
     networks:
       - internal
 
+  # --- PROXY & CONECTIVIDAD ---
   proxy:
     container_name: ${INSTANCE_PREFIX}-proxy
     image: jc21/nginx-proxy-manager:latest
@@ -53,6 +62,7 @@ services:
     networks:
       - internal
 
+  # --- INTELIGENCIA ARTIFICIAL ---
   ollama:
     container_name: ${INSTANCE_PREFIX}-ollama
     image: ollama/ollama:latest
@@ -79,6 +89,28 @@ services:
     networks:
       - internal
 
+  # --- DESARROLLO (OpenHands) ---
+  openhands:
+    container_name: ${INSTANCE_PREFIX}-openhands
+    image: ghcr.io/all-hands-ai/openhands:0.9
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - LLM_BASE_URL=http://ollama:11434
+      - LLM_MODEL=ollama/codestral
+      - WORKSPACE_BASE=/home/${USER}/openhands_workspace
+      - FILE_STORE=local
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./volumes/openhands:/opt/workspace_base
+    depends_on:
+      - ollama
+    networks:
+      - internal
+      - external
+
+  # --- AUTOMATIZACIÓN (n8n) ---
   n8n:
     container_name: ${INSTANCE_PREFIX}-n8n
     image: docker.n8n.io/n8nio/n8n:latest
@@ -103,6 +135,7 @@ services:
       - ./volumes/n8n_asistente_data:/home/node/.n8n
     depends_on:
       - db
+      - redis
     networks:
       - internal
       - external

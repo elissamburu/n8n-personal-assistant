@@ -97,9 +97,10 @@ services:
     ports:
       - "3001:3000"
     environment:
+      - SANDBOX_USER_ID=1000  # <--- AGREGAR ESTA LÍNEA
       - LLM_BASE_URL=http://ollama:11434
       - LLM_MODEL=ollama/codestral
-      - WORKSPACE_BASE=/home/${USER}/openhands_workspace
+      - WORKSPACE_BASE=/root/n8n-personal-assistant/volumes/openhands # Ruta absoluta es mejor
       - FILE_STORE=local
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

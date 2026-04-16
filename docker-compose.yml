@@ -1,7 +1,8 @@
+version: '3.8'
+
 services:
-  # Nombre del servicio: db | Nombre del contenedor: dev-n8n-db
   db:
-    container_name: ${INSTANCE_PREFIX}-n8n-db
+    container_name: ${INSTANCE_PREFIX}-db
     image: postgres:16-alpine
     restart: always
     environment:
@@ -11,10 +12,24 @@ services:
     volumes:
       - ./volumes/postgres_data:/var/lib/postgresql/data
     networks:
-      - internal_net
+      - internal
+
+  pgadmin:
+    container_name: ${INSTANCE_PREFIX}-pgadmin
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "8082:80"
+    depends_on:
+      - db
+    networks:
+      - internal
 
   proxy:
-    container_name: ${INSTANCE_PREFIX}-n8n-proxy
+    container_name: ${INSTANCE_PREFIX}-proxy
     image: jc21/nginx-proxy-manager:latest
     restart: always
     ports:
@@ -25,21 +40,47 @@ services:
       - ./volumes/npm_data:/data
       - ./volumes/npm_letsencrypt:/etc/letsencrypt
     networks:
-      - internal_net
-      - external_net
+      - internal
+      - external
 
   tunnel:
-    container_name: ${INSTANCE_PREFIX}-n8n-tunnel
+    container_name: ${INSTANCE_PREFIX}-tunnel
     image: cloudflare/cloudflared:latest
     restart: always
     command: tunnel run --token ${CLOUDFLARE_TOKEN}
     depends_on:
       - proxy
     networks:
-      - internal_net
+      - internal
+
+  ollama:
+    container_name: ${INSTANCE_PREFIX}-ollama
+    image: ollama/ollama:latest
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./volumes/ollama_data:/root/.ollama
+    networks:
+      - internal
+
+  open-webui:
+    container_name: ${INSTANCE_PREFIX}-open-webui
+    image: ghcr.io/open-webui/open-webui:main
+    restart: always
+    ports:
+      - "8081:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - ./volumes/open_webui_data:/app/backend/data
+    depends_on:
+      - ollama
+    networks:
+      - internal
 
   n8n:
-    container_name: ${INSTANCE_PREFIX}-n8n-app
+    container_name: ${INSTANCE_PREFIX}-n8n
     image: docker.n8n.io/n8nio/n8n:latest
     restart: always
     ports:
@@ -50,6 +91,7 @@ services:
       - N8N_PROTOCOL=https
       - NODE_ENV=production
       - WEBHOOK_URL=https://${N8N_ASISTENTE_URL}/
+      - N8N_PUSH_BACKEND=websocket
       - N8N_ENCRYPTION_KEY=${N8N_KEY_ASISTENTE}
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=db
@@ -62,13 +104,13 @@ services:
     depends_on:
       - db
     networks:
-      - internal_net
-      - external_net
+      - internal
+      - external
 
 networks:
-  internal_net:
-    name: ${INSTANCE_PREFIX}_n8n_internal
+  internal:
+    name: ${INSTANCE_PREFIX}-internal-net
     driver: bridge
-  external_net:
-    name: ${INSTANCE_PREFIX}_n8n_external
+  external:
+    name: ${INSTANCE_PREFIX}-external-net
     driver: bridge

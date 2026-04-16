@@ -1,8 +1,0 @@
-{
-  "instance_prefix": "asistente",
-  "project_name": "asistente-n8n-agent",
-  "domain": "asitente.trascendex.com.ar",
-  "email": "relissamburu@expentrack.com",
-  "port": "5678",
-  "modules": { "ai": "s", "code": "s", "tunnel": "s" }
-}

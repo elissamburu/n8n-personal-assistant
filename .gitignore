@@ -1,4 +1,8 @@
 .env
-./volumes/*
-/volumes/*.*
-volumes/*.*
+installer_state.json
+volumes/
+**/volumes/*
+data/
+*.log
+.DS_Store
+.cache/

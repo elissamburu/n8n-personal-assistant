@@ -35,8 +35,14 @@ read -p "Puerto para n8n (Sugerido: 5678): " N8N_PORT
 N8N_PORT=${N8N_PORT:-5678}
 
 echo -e "\n${BOLD}[3/5] Configuración de Red${NC}"
+echo -e "${YELLOW}IMPORTANTE:${NC} El dominio debe estar registrado en Cloudflare y apuntar a tu IP pública."
 read -p "Dominio Base (ej: trascendex.com.ar): " DOMAIN
+eho -e "${YELLOW}RECOMENDACIÓN:${NC} Usa un email asociado a tu cuenta de Cloudflare para evitar problemas con el token."
 read -p "Email de administración: " ADMIN_EMAIL
+echo -e "${YELLOW}RECOMENDACIÓN:${NC} Ahora necesitas un tunnel desde Cloudflare."
+echo -e "Ve a https://dash.cloudflare.com/ luego a Zero Trust -> Networks -> Connectors"
+echo -e "Crea un nuevo tunnel, (selecciona Cloudflared) asignale un nombre (ej: server-local-tunnel) y luego genera un token."
+echo -e "En Install and run a connector selecciona Docker y copia el comando completo (que incluye el token) para usarlo en la siguiente pregunta. (Solo necesitas el token, no el comando completo)."
 read -p "Token de Cloudflare Tunnel: " CF_TOKEN
 
 echo -e "\n${BOLD}[4/5] Aprovisionamiento...${NC}"
@@ -78,16 +84,21 @@ echo -e "   1. n8n-$INSTANCE_NAME.$DOMAIN  --> http://proxy:80"
 echo -e "   2. ia-$INSTANCE_NAME.$DOMAIN   --> http://proxy:80"
 echo -e "   3. code-$INSTANCE_NAME.$DOMAIN --> http://proxy:80"
 echo ""
-echo -e "${BOLD}B. NGINX PROXY MANAGER (Panel Puerto 81):${NC}"
-echo -e "   1. Host: n8n-$INSTANCE_NAME.$DOMAIN"
-echo -e "      Forward: http://n8n:5678 | Websockets: ON"
+
+# Obtener solo la IPv4 de la interfaz principal
+MI_IP=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1' | head -n 1)
+
+echo -e "${BOLD}B. EN NGINX PROXY MANAGER http://$MI_IP:81:${NC}"
+echo -e "   En el menú: Host -> Proxy Hosts -> ADD PROXY HOSTS"
+echo -e "   1. Domain Names: n8n-$INSTANCE_NAME.$DOMAIN"
+echo -e "      Forward Hostname / IP: n8n | Forward Port: 5678 | Websockets: ON"
 echo ""
-echo -e "   2. Host: ia-$INSTANCE_NAME.$DOMAIN"
-echo -e "      Forward: http://open-webui:8080 | Websockets: ON"
+echo -e "   2. Domain Names: ia-$INSTANCE_NAME.$DOMAIN"
+echo -e "      Forward Hostname / IP: open-webui | Forward Port: 8080 | Websockets: ON"
 echo ""
-echo -e "   3. Host: code-$INSTANCE_NAME.$DOMAIN"
-echo -e "      Forward: http://openhands:3000 | Websockets: ON"
+echo -e "   3. Domain Names: code-$INSTANCE_NAME.$DOMAIN"
+echo -e "      Forward Hostname / IP: openhands | Forward Port: 3000 | Websockets: ON"
 echo -e "${BLUE}====================================================${NC}"
 
 read -p "¿Levantar stack ahora? [s/n]: " START_NOW
-[[ "$START_NOW" =~ ^[Ss]$ ]] && docker compose up -d
+[[ "$START_NOW" =~ ^[Ss]$ ]] && docker compose up -d    

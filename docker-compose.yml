@@ -1,7 +1,7 @@
-version: '3.8'
-
 services:
+  # Nombre del servicio: db | Nombre del contenedor: dev-n8n-db
   db:
+    container_name: ${INSTANCE_PREFIX}-n8n-db
     image: postgres:16-alpine
     restart: always
     environment:
@@ -11,22 +11,10 @@ services:
     volumes:
       - ./volumes/postgres_data:/var/lib/postgresql/data
     networks:
-      - internal
-
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
-    ports:
-      - "8082:80"
-    depends_on:
-      - db
-    networks:
-      - internal
+      - internal_net
 
   proxy:
+    container_name: ${INSTANCE_PREFIX}-n8n-proxy
     image: jc21/nginx-proxy-manager:latest
     restart: always
     ports:
@@ -37,43 +25,21 @@ services:
       - ./volumes/npm_data:/data
       - ./volumes/npm_letsencrypt:/etc/letsencrypt
     networks:
-      - internal
-      - external
+      - internal_net
+      - external_net
 
   tunnel:
+    container_name: ${INSTANCE_PREFIX}-n8n-tunnel
     image: cloudflare/cloudflared:latest
     restart: always
     command: tunnel run --token ${CLOUDFLARE_TOKEN}
     depends_on:
       - proxy
     networks:
-      - internal
-
-  ollama:
-    image: ollama/ollama:latest
-    restart: always
-    ports:
-      - "11434:11434"
-    volumes:
-      - ./volumes/ollama_data:/root/.ollama
-    networks:
-      - internal
-
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:main
-    restart: always
-    ports:
-      - "8081:8080"
-    environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-    volumes:
-      - ./volumes/open_webui_data:/app/backend/data
-    depends_on:
-      - ollama
-    networks:
-      - internal
+      - internal_net
 
   n8n:
+    container_name: ${INSTANCE_PREFIX}-n8n-app
     image: docker.n8n.io/n8nio/n8n:latest
     restart: always
     ports:
@@ -84,7 +50,6 @@ services:
       - N8N_PROTOCOL=https
       - NODE_ENV=production
       - WEBHOOK_URL=https://${N8N_ASISTENTE_URL}/
-      - N8N_PUSH_BACKEND=websocket
       - N8N_ENCRYPTION_KEY=${N8N_KEY_ASISTENTE}
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=db
@@ -97,11 +62,13 @@ services:
     depends_on:
       - db
     networks:
-      - internal
-      - external
+      - internal_net
+      - external_net
 
 networks:
-  internal:
+  internal_net:
+    name: ${INSTANCE_PREFIX}_n8n_internal
     driver: bridge
-  external:
+  external_net:
+    name: ${INSTANCE_PREFIX}_n8n_external
     driver: bridge

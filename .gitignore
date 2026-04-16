@@ -6,3 +6,5 @@ data/
 *.log
 .DS_Store
 .cache/
+
+docker run cloudflare/cloudflared:latest tunnel --no-autoupdate run --token eyJhIjoiYWIwYmUyZDM1YTNlNWM2NmI0NWFlNjIyZGZlNmYzMDUiLCJ0IjoiYjI0MDg3Y2MtMTQ0Ni00YzFjLTllMDUtNDUwZjcyZmI0YTRmIiwicyI6Ik9HVmtPR00xTURVdFltVmtOaTAwWVRVeUxUa3lOV010TVdWallqRm1NamhtTVdFeSJ9
